@@ -146,6 +146,61 @@ public:
 	}
 
 	/**
+	 * Update runtime feedback diagnostics for sim-to-real gap analysis.
+	 * Called each control cycle with current motor outputs and state data.
+	 */
+	void update_feedback_diagnostics(const float *motor_outputs, int num_motors,
+					 const float *pos_error_ned, const float *angular_vel)
+	{
+		// Store latest motor outputs
+		for (int i = 0; i < 4 && i < num_motors; i++) {
+			// Compute rate of change
+			float delta = motor_outputs[i] - _prev_motor_outputs[i];
+			_motor_rate_of_change += delta * delta;
+			_prev_motor_outputs[i] = motor_outputs[i];
+		}
+
+		_motor_rate_of_change = sqrtf(_motor_rate_of_change / 4.0f);
+
+		// Motor saturation: count how many motors are near limits
+		int saturated = 0;
+
+		for (int i = 0; i < 4 && i < num_motors; i++) {
+			if (motor_outputs[i] > 0.95f || motor_outputs[i] < -0.95f) {
+				saturated++;
+			}
+		}
+
+		constexpr float sat_alpha = 0.1f;
+		_motor_saturation_ratio = sat_alpha * (static_cast<float>(saturated) / 4.0f)
+					  + (1.0f - sat_alpha) * _motor_saturation_ratio;
+
+		// Store position error and angular velocity for the status message
+		for (int i = 0; i < 3; i++) {
+			_last_pos_error_ned[i] = pos_error_ned[i];
+			_last_angular_vel[i] = angular_vel[i];
+		}
+
+		// Detect flight phase from velocity and position error magnitude
+		float vel_magnitude = sqrtf(angular_vel[0] * angular_vel[0] +
+					    angular_vel[1] * angular_vel[1] +
+					    angular_vel[2] * angular_vel[2]);
+		float pos_err_mag = sqrtf(pos_error_ned[0] * pos_error_ned[0] +
+					  pos_error_ned[1] * pos_error_ned[1] +
+					  pos_error_ned[2] * pos_error_ned[2]);
+
+		if (pos_err_mag < 0.3f && vel_magnitude < 0.5f) {
+			_flight_phase = distillation_status_s::PHASE_HOVER;
+
+		} else if (vel_magnitude > 2.0f) {
+			_flight_phase = distillation_status_s::PHASE_MANEUVER;
+
+		} else {
+			_flight_phase = distillation_status_s::PHASE_CRUISE;
+		}
+	}
+
+	/**
 	 * Populate a DistillationStatus message with current monitor state.
 	 */
 	void populate_status(distillation_status_s &status, uint8_t model_id, uint8_t model_version) const
@@ -163,6 +218,20 @@ public:
 		status.success_rate = (_total_inferences > 0)
 				      ? static_cast<float>(_total_inferences - _failed_inferences) / static_cast<float>(_total_inferences)
 				      : 1.0f;
+
+		// Runtime feedback diagnostics
+		for (int i = 0; i < 4; i++) {
+			status.motor_outputs[i] = _prev_motor_outputs[i];
+		}
+
+		for (int i = 0; i < 3; i++) {
+			status.position_error_ned[i] = _last_pos_error_ned[i];
+			status.angular_velocity_raw[i] = _last_angular_vel[i];
+		}
+
+		status.motor_saturation_ratio = _motor_saturation_ratio;
+		status.output_rate_of_change = _motor_rate_of_change;
+		status.flight_phase = _flight_phase;
 	}
 
 	// Accessors
@@ -171,6 +240,8 @@ public:
 	uint32_t failed_inferences() const { return _failed_inferences; }
 	uint8_t last_fallback_reason() const { return _last_fallback_reason; }
 	float output_variance() const { return _output_variance; }
+	float motor_saturation_ratio() const { return _motor_saturation_ratio; }
+	uint8_t flight_phase() const { return _flight_phase; }
 
 private:
 	void record_success()
@@ -220,4 +291,12 @@ private:
 
 	float _output_variance{0.0f};
 	float _mean_position_error{0.0f};
+
+	// Runtime feedback diagnostics
+	float _prev_motor_outputs[4]{0.0f, 0.0f, 0.0f, 0.0f};
+	float _last_pos_error_ned[3]{0.0f, 0.0f, 0.0f};
+	float _last_angular_vel[3]{0.0f, 0.0f, 0.0f};
+	float _motor_saturation_ratio{0.0f};
+	float _motor_rate_of_change{0.0f};
+	uint8_t _flight_phase{distillation_status_s::PHASE_IDLE};
 };

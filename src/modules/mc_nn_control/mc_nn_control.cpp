@@ -583,6 +583,12 @@ void MulticopterNeuralNetworkControl::Run()
 					_input_data[2] * _input_data[2]);
 		_distillation_monitor.update_position_error(pos_error);
 
+		// Update runtime feedback diagnostics for sim-to-real gap analysis
+		float pos_error_ned[3] = {_input_data[0], _input_data[1], _input_data[2]};
+		float angular_vel[3] = {_input_data[12], _input_data[13], _input_data[14]};
+		_distillation_monitor.update_feedback_diagnostics(
+			_output_tensor->data.f, 4, pos_error_ned, angular_vel);
+
 		// Check if PID fallback should be activated
 		if (_param_fallback_enabled.get() && ((!output_valid || !timing_valid) &&
 				_distillation_monitor.should_fallback(_param_error_limit.get()))) {

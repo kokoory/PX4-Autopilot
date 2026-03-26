@@ -111,8 +111,27 @@ def build_improvement_prompt(
     metrics: dict,
     previous_reward_code: str,
     iteration: int,
+    real_world_context: str = None,
 ) -> str:
-    """Build the prompt for the LLM to improve the reward function."""
+    """Build the prompt for the LLM to improve the reward function.
+
+    Args:
+        real_world_context: Optional flight analysis report from the runtime
+            feedback loop. When provided, the LLM should consider sim-to-real
+            gap indicators when refining the reward function.
+    """
+    real_world_section = ""
+    if real_world_context:
+        real_world_section = textwrap.dedent(f"""\
+
+Real-World Flight Feedback (from runtime distillation feedback loop):
+{real_world_context}
+
+IMPORTANT: The above data is from ACTUAL FLIGHT, not simulation. Use it to
+identify sim-to-real discrepancies and adjust the reward to produce a controller
+that is robust to these real-world effects.
+""")
+
     return textwrap.dedent(f"""\
 Iteration {iteration}: Improve the reward function for the following scenario.
 
@@ -138,7 +157,7 @@ Previous reward function:
 {previous_reward_code}
 ```
 
-Based on these metrics, generate an improved reward function. Focus on:
+{real_world_section}Based on these metrics, generate an improved reward function. Focus on:
 1. Reducing position error if it's above the target threshold
 2. Improving stability if angular velocities are too high
 3. Achieving faster settling time

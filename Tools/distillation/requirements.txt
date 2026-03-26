@@ -8,3 +8,4 @@ matplotlib>=3.7.0
 tflite-runtime>=2.14.0
 tf2onnx>=1.16.0
 tensorflow>=2.14.0
+pyulog>=1.0.0
