@@ -146,6 +146,7 @@ set(msg_files
 	NavigatorMissionItem.msg
 	NavigatorStatus.msg
 	NeuralControl.msg
+	DistillationStatus.msg
 	NormalizedUnsignedSetpoint.msg
 	ObstacleDistance.msg
 	OffboardControlMode.msg

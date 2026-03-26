@@ -40,3 +40,40 @@ parameters:
       type: boolean
       default: 1
       reboot_required: true
+    MC_NN_FALLBACK:
+      description:
+        short: Enable automatic PID fallback on NN inference failure
+        long: When enabled, the controller automatically falls back to traditional
+          PID control if the neural network produces invalid outputs (NaN, out of
+          range) or exceeds the inference time budget for consecutive cycles.
+      type: boolean
+      default: 1
+    MC_NN_MAX_INF_T:
+      description:
+        short: Maximum allowed inference time in microseconds
+        long: If a single NN inference takes longer than this value, it is counted
+          as a failure. Used together with MC_NN_ERR_LIM to trigger PID fallback.
+      type: int32
+      default: 2500
+      min: 500
+      max: 10000
+      unit: us
+    MC_NN_MODEL_ID:
+      description:
+        short: Active distilled model identifier
+        long: Identifier for the currently deployed distilled model. Used for
+          telemetry and ground station display. Set by the distillation pipeline.
+      type: int32
+      default: 0
+      min: 0
+      max: 255
+    MC_NN_ERR_LIM:
+      description:
+        short: Consecutive inference error limit before PID fallback
+        long: Number of consecutive failed inferences (NaN, out of range, or
+          timeout) before the controller automatically switches to PID fallback.
+          Only effective when MC_NN_FALLBACK is enabled.
+      type: int32
+      default: 5
+      min: 1
+      max: 100

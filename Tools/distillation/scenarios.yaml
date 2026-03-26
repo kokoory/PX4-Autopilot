@@ -1,0 +1,130 @@
+# Flight scenarios for knowledge distillation training data generation
+# Each scenario defines vehicle parameters, environment conditions, and mission objectives
+
+vehicle_defaults:
+  mass_kg: 1.5
+  arm_length_m: 0.25
+  inertia_xx: 0.029125
+  inertia_yy: 0.029125
+  inertia_zz: 0.055225
+  motor_constant: 8.54858e-06
+  moment_constant: 1.6e-02
+  max_rpm: 22000
+  min_rpm: 1000
+  thrust_coefficient: 1.2  # Divided by 100000 in PX4
+  num_motors: 4
+
+scenarios:
+  hover_stable:
+    description: "Stable hovering at fixed altitude"
+    duration_s: 30
+    target_position: [0.0, 0.0, -2.0]  # NED frame
+    wind:
+      speed_ms: 0.0
+      direction_deg: 0
+    success_criteria:
+      max_position_error_m: 0.3
+      max_attitude_error_deg: 5.0
+      settling_time_s: 3.0
+
+  hover_wind:
+    description: "Hovering with wind disturbance"
+    duration_s: 30
+    target_position: [0.0, 0.0, -2.0]
+    wind:
+      speed_ms: 5.0
+      direction_deg: 45
+      gust_speed_ms: 2.0
+    success_criteria:
+      max_position_error_m: 0.5
+      max_attitude_error_deg: 10.0
+      settling_time_s: 5.0
+
+  waypoint_tracking:
+    description: "Sequential waypoint following"
+    duration_s: 60
+    waypoints:
+      - [0.0, 0.0, -2.0]
+      - [5.0, 0.0, -2.0]
+      - [5.0, 5.0, -2.0]
+      - [0.0, 5.0, -2.0]
+      - [0.0, 0.0, -2.0]
+    wind:
+      speed_ms: 2.0
+      direction_deg: 90
+    success_criteria:
+      max_tracking_error_m: 1.0
+      max_attitude_error_deg: 15.0
+
+  altitude_change:
+    description: "Vertical position changes"
+    duration_s: 30
+    waypoints:
+      - [0.0, 0.0, -1.0]
+      - [0.0, 0.0, -3.0]
+      - [0.0, 0.0, -1.5]
+      - [0.0, 0.0, -4.0]
+    wind:
+      speed_ms: 1.0
+      direction_deg: 0
+    success_criteria:
+      max_position_error_m: 0.5
+      max_overshoot_m: 0.3
+
+  aggressive_maneuver:
+    description: "Fast position changes for agile flight"
+    duration_s: 45
+    waypoints:
+      - [0.0, 0.0, -2.0]
+      - [3.0, 3.0, -2.5]
+      - [-3.0, 3.0, -1.5]
+      - [-3.0, -3.0, -2.0]
+      - [3.0, -3.0, -2.5]
+    max_velocity_ms: 3.0
+    wind:
+      speed_ms: 3.0
+      direction_deg: 180
+      gust_speed_ms: 1.5
+    success_criteria:
+      max_tracking_error_m: 1.5
+      max_attitude_error_deg: 25.0
+
+# Reward function generation context for LLM
+reward_generation:
+  observation_space:
+    description: "15-element vector matching PX4 mc_nn_control input"
+    elements:
+      - name: pos_error
+        indices: [0, 1, 2]
+        description: "Position error in body frame (x, y, z)"
+        unit: meters
+      - name: attitude_6d
+        indices: [3, 4, 5, 6, 7, 8]
+        description: "First two columns of rotation matrix (6D rotation representation)"
+        unit: dimensionless
+      - name: linear_velocity
+        indices: [9, 10, 11]
+        description: "Linear velocity in body frame"
+        unit: m/s
+      - name: angular_velocity
+        indices: [12, 13, 14]
+        description: "Angular velocity in body frame"
+        unit: rad/s
+
+  action_space:
+    description: "4-element motor command vector"
+    elements:
+      - name: motor_commands
+        indices: [0, 1, 2, 3]
+        description: "Normalized motor outputs"
+        range: [-1.0, 1.0]
+        unit: dimensionless
+
+  reward_constraints:
+    - "Reward must be a single float value"
+    - "Function signature: reward(obs: np.ndarray, action: np.ndarray, next_obs: np.ndarray) -> float"
+    - "Higher reward = better performance"
+    - "Must penalize large position errors"
+    - "Must penalize excessive angular velocities for stability"
+    - "Must penalize large motor command changes for smooth control"
+    - "Should encourage energy efficiency (lower total thrust)"

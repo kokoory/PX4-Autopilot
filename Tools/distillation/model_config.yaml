@@ -1,0 +1,57 @@
+# MLP Student Model Configuration for Knowledge Distillation
+# Architecture must be compatible with PX4 mc_nn_control OpResolver:
+#   Supported ops: FullyConnected, ReLU, Add (no Tanh, Sigmoid, etc.)
+
+model:
+  input_size: 15   # pos_error(3) + attitude_6d(6) + lin_vel(3) + ang_vel(3)
+  output_size: 4   # motor commands
+  hidden_layers: [64, 64, 32]
+  activation: relu  # Must be ReLU for TFLite Micro compatibility
+  output_activation: none  # Raw output, rescaled in PX4
+  use_skip_connections: true  # Residual connections (uses Add op)
+
+training:
+  mode: behavior_cloning  # Options: behavior_cloning, rl_distillation
+  learning_rate: 0.001
+  batch_size: 256
+  epochs: 200
+  optimizer: adam
+  weight_decay: 0.0001
+  scheduler:
+    type: cosine_annealing
+    T_max: 200
+    eta_min: 0.00001
+  early_stopping:
+    patience: 20
+    min_delta: 0.0001
+  loss: mse  # Mean Squared Error on motor outputs
+  train_split: 0.8
+  validation_split: 0.1
+  test_split: 0.1
+
+rl_distillation:
+  algorithm: ppo
+  total_timesteps: 1000000
+  n_steps: 2048
+  gamma: 0.99
+  gae_lambda: 0.95
+  clip_range: 0.2
+  entropy_coef: 0.01
+  value_coef: 0.5
+  max_grad_norm: 0.5
+  n_epochs: 10
+  reward_function_iterations: 5  # Number of LLM reward function improvement iterations
+  fitness_metric: mean_position_error  # Metric to feedback to LLM
+
+export:
+  format: tflite
+  quantization: none  # Options: none (float32), dynamic_range (int8), full_integer
+  max_model_size_bytes: 20000  # Must fit in mc_nn_control tensor_arena (10KB) + model
+  target_inference_time_us: 2500  # 400Hz control loop budget
+  output_dir: ../../src/modules/mc_nn_control/  # Relative to this file
+
+validation:
+  max_output_error: 0.001  # Max absolute error between PyTorch and TFLite outputs
+  output_range: [-1.0, 1.0]  # Expected output range
+  num_test_samples: 1000
+  benchmark_iterations: 100

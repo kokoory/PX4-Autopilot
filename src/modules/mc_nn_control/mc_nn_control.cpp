@@ -378,6 +378,18 @@ void MulticopterNeuralNetworkControl::PublishOutput(float *command_actions)
 
 
 
+void MulticopterNeuralNetworkControl::PublishDistillationStatus(int32_t controller_time_us)
+{
+	distillation_status_s status{};
+	status.timestamp = hrt_absolute_time();
+	_distillation_monitor.populate_status(status,
+					      static_cast<uint8_t>(_param_model_id.get()),
+					      0 /* model_version */);
+	status.controller_time_us = controller_time_us;
+	_distillation_status_pub.publish(status);
+}
+
+
 inline void MulticopterNeuralNetworkControl::RescaleActions()
 {
 	const float thrust_coeff = _param_thrust_coeff.get() / 100000.0f;
@@ -475,7 +487,14 @@ void MulticopterNeuralNetworkControl::Run()
 
 	if (_vehicle_status_sub.updated()) {
 		_vehicle_status_sub.copy(&vehicle_status);
+		bool was_neural = _use_neural;
 		_use_neural = vehicle_status.nav_state == _mode_id;
+
+		// Reset distillation monitor when entering Neural mode
+		if (_use_neural && !was_neural) {
+			_distillation_monitor.reset();
+			PX4_INFO("Neural Control mode activated, distillation monitor reset");
+		}
 	}
 
 	if (_parameter_update_sub.updated()) {
@@ -554,10 +573,36 @@ void MulticopterNeuralNetworkControl::Run()
 			return;
 		}
 
-		// Convert the output tensor to actuator values
-		RescaleActions();
+		// Distillation safety monitoring: validate output and timing
+		bool output_valid = _distillation_monitor.validate_output(_output_tensor->data.f, 4);
+		bool timing_valid = _distillation_monitor.check_timing(inference_time, _param_max_inference_time.get());
 
-		PublishOutput(_output_tensor->data.f);
+		// Track position error for telemetry
+		float pos_error = sqrtf(_input_data[0] * _input_data[0] +
+					_input_data[1] * _input_data[1] +
+					_input_data[2] * _input_data[2]);
+		_distillation_monitor.update_position_error(pos_error);
+
+		// Check if PID fallback should be activated
+		if (_param_fallback_enabled.get() && ((!output_valid || !timing_valid) &&
+				_distillation_monitor.should_fallback(_param_error_limit.get()))) {
+
+			if (!_distillation_monitor.fallback_active()) {
+				_distillation_monitor.set_fallback(true, _distillation_monitor.last_fallback_reason());
+				PX4_WARN("Distillation monitor: activating PID fallback (reason: %d, failures: %lu/%lu)",
+					 _distillation_monitor.last_fallback_reason(),
+					 (unsigned long)_distillation_monitor.failed_inferences(),
+					 (unsigned long)_distillation_monitor.total_inferences());
+			}
+		}
+
+		// Only publish motor output if validation passed and no fallback
+		if (output_valid && timing_valid && !_distillation_monitor.fallback_active()) {
+			// Convert the output tensor to actuator values
+			RescaleActions();
+
+			PublishOutput(_output_tensor->data.f);
+		}
 
 		int32_t full_controller_time = GetTime() - start_time1;
 
@@ -576,6 +621,9 @@ void MulticopterNeuralNetworkControl::Run()
 		neural_control.network_output[2] = _output_tensor->data.f[2];
 		neural_control.network_output[3] = _output_tensor->data.f[3];
 		_neural_control_pub.publish(neural_control);
+
+		// Publish distillation status
+		PublishDistillationStatus(full_controller_time);
 	}
 
 	perf_end(_loop_perf);
