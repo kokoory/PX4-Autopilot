@@ -4,7 +4,7 @@
 
 model:
   input_size: 15   # pos_error(3) + attitude_6d(6) + lin_vel(3) + ang_vel(3)
-  output_size: 4   # motor commands
+  output_size: 5   # singlecopter: 1 motor thrust + 4 servo vane deflections
   hidden_layers: [64, 64, 32]
   activation: relu  # Must be ReLU for TFLite Micro compatibility
   output_activation: none  # Raw output, rescaled in PX4

@@ -2,17 +2,25 @@
 # Each scenario defines vehicle parameters, environment conditions, and mission objectives
 
 vehicle_defaults:
-  mass_kg: 1.5
-  arm_length_m: 0.25
-  inertia_xx: 0.029125
-  inertia_yy: 0.029125
-  inertia_zz: 0.055225
+  type: singlecopter  # Ball Drone MK II style
+  mass_kg: 0.8
+  arm_length_m: 0.04  # Vane distance from center
+  inertia_xx: 0.006
+  inertia_yy: 0.006
+  inertia_zz: 0.004
   motor_constant: 8.54858e-06
   moment_constant: 1.6e-02
   max_rpm: 22000
   min_rpm: 1000
   thrust_coefficient: 1.2  # Divided by 100000 in PX4
-  num_motors: 4
+  num_motors: 1
+  num_servos: 4  # Control vanes
+  cog_above_vanes_m: 0.03  # Center of gravity above vane plane
+  vane_area_m2: 0.0024  # Each vane area
+  control_description: >
+    Single motor provides thrust. Four servo vanes below the propeller
+    deflect prop wash for roll/pitch/yaw control. Differential vane
+    mixing for yaw. Ball Drone MK II design with raised CoG.
 
 scenarios:
   hover_stable:
@@ -112,11 +120,16 @@ reward_generation:
         unit: rad/s
 
   action_space:
-    description: "4-element motor command vector"
+    description: "5-element actuator command vector (1 motor + 4 servo vanes)"
     elements:
-      - name: motor_commands
-        indices: [0, 1, 2, 3]
-        description: "Normalized motor outputs"
+      - name: motor_thrust
+        indices: [0]
+        description: "Main motor thrust command"
+        range: [-1.0, 1.0]
+        unit: dimensionless
+      - name: vane_commands
+        indices: [1, 2, 3, 4]
+        description: "Servo vane deflection (front, right, back, left)"
         range: [-1.0, 1.0]
         unit: dimensionless
 

@@ -1,0 +1,118 @@
+#!/bin/sh
+#
+# @name Gazebo Singlecopter (Ball Drone MK II)
+#
+# @type Singlecopter (1 motor + 4 control vanes)
+#
+# Based on the Ball Drone Project MK II design:
+# Single brushless motor provides thrust. Four servo-actuated vanes
+# below the propeller deflect prop wash for roll, pitch, and yaw control.
+# Center of gravity is above the thrust vectoring surfaces.
+#
+# Vane mixing (Ball Drone style):
+#   Roll right  → front/back vanes tilt right
+#   Pitch fwd   → left/right vanes tilt forward
+#   Yaw right   → differential: each vane tilts in a rotational pattern
+#
+# Designed for knowledge distillation experiments with mc_nn_control.
+#
+# @url https://hackaday.io/project/175512-the-ball-drone-project-mk-ii
+#
+
+. ${R}etc/init.d/rc.mc_defaults
+
+PX4_SIMULATOR=${PX4_SIMULATOR:=gz}
+PX4_GZ_WORLD=${PX4_GZ_WORLD:=default}
+PX4_SIM_MODEL=${PX4_SIM_MODEL:=singlecopter}
+
+param set-default SIM_GZ_EN 1
+
+# Use Custom airframe for singlecopter (1 motor + 4 servo vanes)
+param set-default CA_AIRFRAME 9
+param set-default CA_METHOD 0
+
+# Single motor (thrust only, no yaw torque since vanes handle it)
+param set-default CA_ROTOR_COUNT 1
+param set-default CA_ROTOR0_PX 0.0
+param set-default CA_ROTOR0_PY 0.0
+param set-default CA_ROTOR0_KM 0.0
+param set-default CA_ROTOR0_CT 8.55
+param set-default CA_ROTOR0_AX 0.0
+param set-default CA_ROTOR0_AY 0.0
+param set-default CA_ROTOR0_AZ -1.0
+
+# 4 control surface vanes (Ball Drone MK II mixing)
+# Each vane contributes to roll, pitch, AND yaw (differential mixing)
+param set-default CA_SV_CS_COUNT 4
+
+# Vane 0 (Front, +X position): pitch + yaw
+param set-default CA_SV_CS0_TYPE 15
+param set-default CA_SV_CS0_TRQ_R 0.0
+param set-default CA_SV_CS0_TRQ_P 0.5
+param set-default CA_SV_CS0_TRQ_Y -0.25
+param set-default CA_SV_CS0_TRIM 0.0
+
+# Vane 1 (Right, +Y position): roll + yaw
+param set-default CA_SV_CS1_TYPE 15
+param set-default CA_SV_CS1_TRQ_R 0.5
+param set-default CA_SV_CS1_TRQ_P 0.0
+param set-default CA_SV_CS1_TRQ_Y 0.25
+param set-default CA_SV_CS1_TRIM 0.0
+
+# Vane 2 (Back, -X position): pitch + yaw
+param set-default CA_SV_CS2_TYPE 15
+param set-default CA_SV_CS2_TRQ_R 0.0
+param set-default CA_SV_CS2_TRQ_P -0.5
+param set-default CA_SV_CS2_TRQ_Y -0.25
+param set-default CA_SV_CS2_TRIM 0.0
+
+# Vane 3 (Left, -Y position): roll + yaw
+param set-default CA_SV_CS3_TYPE 15
+param set-default CA_SV_CS3_TRQ_R -0.5
+param set-default CA_SV_CS3_TRQ_P 0.0
+param set-default CA_SV_CS3_TRQ_Y 0.25
+param set-default CA_SV_CS3_TRIM 0.0
+
+# Gazebo engine channel: 1 motor
+param set-default SIM_GZ_EC_FUNC1 101
+param set-default SIM_GZ_EC_MIN1 0
+param set-default SIM_GZ_EC_MAX1 1000
+
+# Gazebo servo channels: 4 vanes
+param set-default SIM_GZ_SV_FUNC1 201
+param set-default SIM_GZ_SV_FUNC2 202
+param set-default SIM_GZ_SV_FUNC3 203
+param set-default SIM_GZ_SV_FUNC4 204
+
+# Flight controller tuning for Ball Drone singlecopter
+# Higher hover thrust needed (single motor carries all weight)
+param set-default MPC_THR_HOVER 0.55
+param set-default MPC_THR_MIN 0.15
+param set-default MPC_THR_MAX 0.95
+
+# Attitude control gains
+# Singlecopter vane control is less responsive than direct motor control
+# Needs strong P gains, similar to Betaflight Ball Drone tuning
+param set-default MC_ROLLRATE_P 0.35
+param set-default MC_ROLLRATE_I 0.15
+param set-default MC_ROLLRATE_D 0.004
+param set-default MC_PITCHRATE_P 0.35
+param set-default MC_PITCHRATE_I 0.15
+param set-default MC_PITCHRATE_D 0.004
+param set-default MC_YAWRATE_P 0.5
+param set-default MC_YAWRATE_I 0.2
+
+# Position control (conservative for singlecopter)
+param set-default MPC_XY_P 0.8
+param set-default MPC_Z_P 1.0
+param set-default MPC_XY_VEL_MAX 3.0
+
+# Safety
+param set-default NAV_DLL_ACT 2
+param set-default COM_DISARM_LAND 5
+
+# Neural control defaults
+param set-default MC_NN_EN 1
+param set-default MC_NN_FALLBACK 1
+param set-default MC_NN_MAX_RPM 22000
+param set-default MC_NN_MIN_RPM 1000
