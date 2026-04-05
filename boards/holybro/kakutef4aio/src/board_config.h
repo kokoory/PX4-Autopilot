@@ -47,28 +47,16 @@
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
-#include <stm32_gpio.h>
-
-/* Configuration ************************************************************************************/
-
-#define BOARD_HAS_USB_VALID           1
-#define BOARD_HAS_NBAT_V              1
-#define BOARD_HAS_NBAT_I              1
-
 /* LEDs - PB5 (active low) */
-#define GPIO_nLED_BLUE       /* PB5 */  (GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN5)
-#define GPIO_LED_BLUE        GPIO_nLED_BLUE
+#define GPIO_LED1        /* PB5 */  (GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN5)
+#define GPIO_LED_BLUE    GPIO_LED1
 
-#define BOARD_HAS_CONTROL_STATUS_LEDS      1
 #define BOARD_OVERLOAD_LED     LED_BLUE
 
-/* ADC channels */
+/* ADC channels
+ * STM32F4 naming: GPIO_ADC1_INxx
+ */
 #define ADC1_CH(n)                  (n)
-
-#define PX4_ADC_GPIO  \
-	/* PC3 */  GPIO_ADC123_INP13, \
-	/* PC2 */  GPIO_ADC123_INP12, \
-	/* PC1 */  GPIO_ADC123_INP11
 
 #define ADC_BATTERY_VOLTAGE_CHANNEL        /* PC3 */  ADC1_CH(13)
 #define ADC_BATTERY_CURRENT_CHANNEL        /* PC2 */  ADC1_CH(12)
@@ -81,11 +69,10 @@
 
 #define BOARD_ADC_OPEN_CIRCUIT_V     (5.6f)
 
-/* PWM - 5 outputs: M1-M4 (servos) + LED pad (motor)
- */
+/* PWM - 5 outputs: M1-M4 (servos) + LED pad (motor) */
 #define DIRECT_PWM_OUTPUT_CHANNELS  5
-
 #define BOARD_NUM_IO_TIMERS 3
+#define BOARD_HAS_PWM    DIRECT_PWM_OUTPUT_CHANNELS
 
 /* Tone alarm output - PC9 (buzzer) */
 #define GPIO_TONE_ALARM_IDLE    /* PC9 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN9)
@@ -116,40 +103,24 @@
 #define BOARD_HAS_ON_RESET 1
 
 #define PX4_GPIO_INIT_LIST { \
-		PX4_ADC_GPIO,                     \
 		GPIO_TONE_ALARM_IDLE,             \
 		GPIO_SBUS_INV,                    \
 	}
 
 #define BOARD_ENABLE_CONSOLE_BUFFER
+#define BOARD_CONSOLE_BUFFER_SIZE (1024*3)
 
 #define FLASH_BASED_PARAMS
 
 __BEGIN_DECLS
 
-/****************************************************************************************************
- * Public Types
- ****************************************************************************************************/
-
-/****************************************************************************************************
- * Public data
- ****************************************************************************************************/
-
 #ifndef __ASSEMBLY__
 
-/****************************************************************************************************
- * Public Functions
- ****************************************************************************************************/
-
-/****************************************************************************************************
- * Name: stm32_spiinitialize
- *
- * Description:
- *   Called to configure SPI chip select GPIO pins for the board.
- *
- ****************************************************************************************************/
-
 extern void stm32_spiinitialize(void);
+extern void stm32_usbinitialize(void);
+extern void board_peripheral_reset(int ms);
+
+#include <px4_platform_common/board_common.h>
 
 #endif /* __ASSEMBLY__ */
 

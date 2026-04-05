@@ -1,0 +1,14 @@
+#!/bin/sh
+#
+# Board-specific defaults for Kakute F4 AIO V2.1
+#
+
+# Battery voltage/current calibration
+param set-default BAT1_V_DIV 10.1
+param set-default BAT1_A_PER_V 17.0
+
+# No onboard magnetometer
+param set-default SYS_HAS_MAG 0
+
+# Disable supply check (no dedicated power sensing)
+param set-default CBRK_SUPPLY_CHK 894281
