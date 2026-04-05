@@ -63,7 +63,7 @@ python validate_model.py --tflite output/student.tflite --pytorch output/student
 ## Hardware Config (real flight)
 - FC: Kakute H7 V2 (STM32H743, 480MHz)
 - Build: `make holybro_kakuteh7v2_default` (needs TFLite + mc_nn_control added to px4board)
-- Servos: MD85MG-CAN (used in PWM mode)
+- Servos: PWM servo (later upgrade to MD85MG-CAN for CAN bus)
 - All outputs PWM:
   - S1 (PB0, Timer3) → Servo V0 (Front)  PWM_MAIN_FUNC1=201
   - S2 (PB1, Timer3) → Servo V1 (Right)  PWM_MAIN_FUNC2=202
