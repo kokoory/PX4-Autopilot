@@ -65,11 +65,11 @@ python validate_model.py --tflite output/student.tflite --pytorch output/student
 - Build: `make holybro_kakuteh7v2_default` (needs TFLite + mc_nn_control added to px4board)
 - Servos: PWM servo (later upgrade to MD85MG-CAN for CAN bus)
 - All outputs PWM:
-  - S1 (PB0, Timer3) → Servo V0 (Front)  PWM_MAIN_FUNC1=201
-  - S2 (PB1, Timer3) → Servo V1 (Right)  PWM_MAIN_FUNC2=202
-  - S3 (PB3, Timer2) → Servo V2 (Back)   PWM_MAIN_FUNC3=203
-  - S4 (PB10,Timer2) → Servo V3 (Left)   PWM_MAIN_FUNC4=204
-  - S5 (PA0, Timer5) → ESC → Motor       PWM_MAIN_FUNC5=101
+  - M1 (PB0, Timer3) → Servo V0 (Front)  PWM_MAIN_FUNC1=201
+  - M2 (PB1, Timer3) → Servo V1 (Right)  PWM_MAIN_FUNC2=202
+  - M3 (PB3, Timer2) → Servo V2 (Back)   PWM_MAIN_FUNC3=203
+  - M4 (PB10,Timer2) → Servo V3 (Left)   PWM_MAIN_FUNC4=204
+  - M5 (PA0, Timer5) → ESC → Motor       PWM_MAIN_FUNC5=101
 - Motor: S5 via PWM ESC
 - Safety: `MC_NN_FALLBACK = 1` (always!)
 
