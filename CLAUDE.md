@@ -61,17 +61,31 @@ python validate_model.py --tflite output/student.tflite --pytorch output/student
 ```
 
 ## Hardware Config (real flight)
-- FC: Kakute H7 V2 (STM32H743, 480MHz)
-- Build: `make holybro_kakuteh7v2_default` (needs TFLite + mc_nn_control added to px4board)
+- FC: **Kakute F4 AIO V2.1** (STM32F405, 168MHz, 1MB flash)
+- Build: `make holybro_kakutef4aio_default`
+- Bootloader: Custom PX4 bootloader (`~/PX4-Bootloader`, target `kakutef4aio_bl`)
+  - Flash via DFU: `sudo dfu-util -a 0 -s 0x08000000:leave -D ~/PX4-Bootloader/build/kakutef4aio_bl/kakutef4aio_bl.bin`
+  - Board type: 122 (AP_HW_KAKUTEF4), VBUS sense disabled
+- Upload: `make holybro_kakutef4aio_default upload`
 - Servos: PWM servo (later upgrade to MD85MG-CAN for CAN bus)
 - All outputs PWM:
   - M1 (PB0, Timer3) → Servo V0 (Front)  PWM_MAIN_FUNC1=201
   - M2 (PB1, Timer3) → Servo V1 (Right)  PWM_MAIN_FUNC2=202
-  - M3 (PB3, Timer2) → Servo V2 (Back)   PWM_MAIN_FUNC3=203
-  - M4 (PB10,Timer2) → Servo V3 (Left)   PWM_MAIN_FUNC4=204
-  - M5 (PA0, Timer5) → ESC → Motor       PWM_MAIN_FUNC5=101
-- Motor: S5 via PWM ESC
+  - M3 (PA3, Timer5) → Servo V2 (Back)   PWM_MAIN_FUNC3=203
+  - M4 (PA2, Timer5) → Servo V3 (Left)   PWM_MAIN_FUNC4=204
+  - LED/M5 (PC8, Timer8) → Motor ESC     PWM_MAIN_FUNC5=101
+- Motor: LED pad (PC8) repurposed as ESC output
+- IMU: ICM20689 on SPI1 (CS=PC4, DRDY=PC5)
+- Flash usage: ~87% (885KB/992KB) — TFLite is 274KB
+- Modules removed for flash: EKF2, GPS, DShot, OSD, TempComp, HoverThrust, GyroCalib
 - Safety: `MC_NN_FALLBACK = 1` (always!)
+
+### Build fixes applied (kakutef4aio)
+- `board_config.h`: Added `px4_config.h` and `stm32_gpio.h` includes
+- `spi.cpp`: Added `drv_sensor.h`, removed non-existent `DRV_FLASH_DEVTYPE_JEDEC`
+- `timer_config.cpp`: Full DMA stream/channel specs (TIM3:S2/C5, TIM5:S0/C6, TIM8:S1/C7)
+- `defconfig`: Disabled NuttX TIM3/TIM5/TIM8 (PX4 IO timer conflict)
+- `default.px4board`: Trimmed modules to fit TFLite in 992KB flash
 
 ## Architecture
 ```

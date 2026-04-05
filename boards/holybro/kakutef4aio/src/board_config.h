@@ -43,8 +43,11 @@
 
 #pragma once
 
+#include <px4_platform_common/px4_config.h>
 #include <nuttx/compiler.h>
 #include <stdint.h>
+
+#include <stm32_gpio.h>
 
 /* LEDs - PB5 (active low) */
 #define GPIO_LED1        /* PB5 */  (GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN5)
