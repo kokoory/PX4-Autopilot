@@ -266,8 +266,7 @@
 #define GPIO_UART4_RX	GPIO_UART4_RX_1    /* PA1 */
 #define GPIO_UART4_TX	GPIO_UART4_TX_1    /* PA0 */
 
-/* UART5 (ESC telemetry) */
-#define GPIO_UART5_RX	GPIO_UART5_RX_1    /* PD2 */
+/* UART5 (ESC telemetry) - disabled, PD2 only RX */
 
 /* UART6:
  *
