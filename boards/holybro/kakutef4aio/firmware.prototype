@@ -1,0 +1,13 @@
+{
+    "board_id": 122,
+    "magic": "PX4FWv1",
+    "description": "Firmware for the Holybro Kakute F4 AIO V2.1 (Singlecopter)",
+    "image": "",
+    "build_time": 0,
+    "summary": "KAKUTEF4AIO",
+    "version": "0.1",
+    "image_size": 0,
+    "image_maxsize": 983040,
+    "git_identity": "",
+    "board_revision": 0
+}

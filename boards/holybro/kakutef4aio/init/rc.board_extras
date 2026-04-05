@@ -1,0 +1,11 @@
+#!/bin/sh
+#
+# Board-specific extras init
+# Kakute F4 AIO V2.1
+#
+
+# OSD (MAX7456 on SPI3)
+if param compare OSD_ATXXXX_CFG 1
+then
+	atxxxx start -s -b 3
+fi

@@ -1,0 +1,11 @@
+#!/bin/sh
+#
+# Board-specific sensors init
+# Kakute F4 AIO V2.1
+#
+
+# ICM20689 on SPI1
+icm20689 -s -R 4 start
+
+# BMP280 barometer on I2C1
+bmp280 -I -a 0x76 start
