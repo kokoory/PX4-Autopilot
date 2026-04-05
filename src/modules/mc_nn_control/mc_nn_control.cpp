@@ -353,27 +353,38 @@ void MulticopterNeuralNetworkControl::PopulateInputTensor()
 
 }
 
-void MulticopterNeuralNetworkControl::PublishOutput(float *command_actions)
+void MulticopterNeuralNetworkControl::PublishMotorOutput(float motor_command)
 {
-
-	actuator_motors_s actuator_motors;
+	actuator_motors_s actuator_motors{};
 	actuator_motors.timestamp = hrt_absolute_time();
 
-	actuator_motors.control[0] = PX4_ISFINITE(command_actions[0]) ? command_actions[0] : NAN;
-	actuator_motors.control[1] = PX4_ISFINITE(command_actions[1]) ? command_actions[1] : NAN;
-	actuator_motors.control[2] = PX4_ISFINITE(command_actions[2]) ? command_actions[2] : NAN;
-	actuator_motors.control[3] = PX4_ISFINITE(command_actions[3]) ? command_actions[3] : NAN;
-	actuator_motors.control[4] = -NAN;
-	actuator_motors.control[5] = -NAN;
-	actuator_motors.control[6] = -NAN;
-	actuator_motors.control[7] = -NAN;
-	actuator_motors.control[8] = -NAN;
-	actuator_motors.control[9] = -NAN;
-	actuator_motors.control[10] = -NAN;
-	actuator_motors.control[11] = -NAN;
-	actuator_motors.reversible_flags = 0;
+	const int num_motors = _param_num_motors.get();
 
+	actuator_motors.control[0] = PX4_ISFINITE(motor_command) ? motor_command : NAN;
+
+	for (int i = 1; i < 12; i++) {
+		actuator_motors.control[i] = (i < num_motors) ? NAN : -NAN;
+	}
+
+	actuator_motors.reversible_flags = 0;
 	_actuator_motors_pub.publish(actuator_motors);
+}
+
+void MulticopterNeuralNetworkControl::PublishServoOutput(float *servo_commands, int num_servos)
+{
+	actuator_servos_s actuator_servos{};
+	actuator_servos.timestamp = hrt_absolute_time();
+
+	for (int i = 0; i < 8; i++) {
+		if (i < num_servos) {
+			actuator_servos.control[i] = PX4_ISFINITE(servo_commands[i]) ? servo_commands[i] : 0.0f;
+
+		} else {
+			actuator_servos.control[i] = NAN;
+		}
+	}
+
+	_actuator_servos_pub.publish(actuator_servos);
 }
 
 
@@ -390,32 +401,34 @@ void MulticopterNeuralNetworkControl::PublishDistillationStatus(int32_t controll
 }
 
 
-inline void MulticopterNeuralNetworkControl::RescaleActions()
+void MulticopterNeuralNetworkControl::RescaleMotorAction(float &motor_output)
 {
+	// Clamp to [-1, 1]
+	motor_output = math::constrain(motor_output, -1.0f, 1.0f);
+
+	// Convert NN output to motor command using thrust coefficient
 	const float thrust_coeff = _param_thrust_coeff.get() / 100000.0f;
-	const float min_rpm = _param_min_rpm.get();
-	const float max_rpm = _param_max_rpm.get();
+	const float min_rpm = static_cast<float>(_param_min_rpm.get());
+	const float max_rpm = static_cast<float>(_param_max_rpm.get());
 	const float a = 0.8f;
 	const float b = (1.0f - 0.8f);
 	const float tmp1 = b / (2.f * a);
 	const float tmp2 = b * b / (4.f * a * a);
 
-	for (int i = 0; i < 4; i++) {
+	motor_output = motor_output + 1.0f;
+	float rps = motor_output / thrust_coeff;
+	rps = sqrtf(rps);
+	float rpm = rps * 60.0f;
+	motor_output = (rpm * 2.0f - max_rpm - min_rpm) / (max_rpm - min_rpm);
+	motor_output = a * (((motor_output + 1.0f) / 2.0f + tmp1) * ((
+				  motor_output + 1.0f) / 2.0f + tmp1) - tmp2);
+}
 
-		if (_output_tensor->data.f[i] < -1.0f) {
-			_output_tensor->data.f[i] = -1.0f;
-
-		} else if (_output_tensor->data.f[i] > 1.0f) {
-			_output_tensor->data.f[i] = 1.0f;
-		}
-
-		_output_tensor->data.f[i] = _output_tensor->data.f[i] + 1.0f;
-		float rps = _output_tensor->data.f[i] / thrust_coeff;
-		rps = sqrt(rps);
-		float rpm = rps * 60.0f;
-		_output_tensor->data.f[i] = (rpm * 2.0f - max_rpm - min_rpm) / (max_rpm - min_rpm);
-		_output_tensor->data.f[i] = a * (((_output_tensor->data.f[i] + 1.0f) / 2.0f + tmp1) * ((
-				_output_tensor->data.f[i] + 1.0f) / 2.0f + tmp1) - tmp2);
+void MulticopterNeuralNetworkControl::RescaleServoActions(float *servo_outputs, int num_servos)
+{
+	// Servo outputs: clamp to [-1, 1] (direct angular deflection)
+	for (int i = 0; i < num_servos; i++) {
+		servo_outputs[i] = math::constrain(servo_outputs[i], -1.0f, 1.0f);
 	}
 }
 
@@ -602,12 +615,27 @@ void MulticopterNeuralNetworkControl::Run()
 			}
 		}
 
-		// Only publish motor output if validation passed and no fallback
+		// Only publish output if validation passed and no fallback
 		if (output_valid && timing_valid && !_distillation_monitor.fallback_active()) {
-			// Convert the output tensor to actuator values
-			RescaleActions();
+			const int num_motors = _param_num_motors.get();
+			const int num_servos = _param_num_servos.get();
 
-			PublishOutput(_output_tensor->data.f);
+			// NN output layout: [motor_0, ..., motor_N, servo_0, ..., servo_M]
+			// Singlecopter (default): [motor_0, servo_0, servo_1, servo_2, servo_3]
+
+			// Rescale and publish motor outputs
+			for (int i = 0; i < num_motors; i++) {
+				RescaleMotorAction(_output_tensor->data.f[i]);
+			}
+
+			PublishMotorOutput(_output_tensor->data.f[0]);
+
+			// Rescale and publish servo outputs (vanes)
+			if (num_servos > 0) {
+				float *servo_data = &_output_tensor->data.f[num_motors];
+				RescaleServoActions(servo_data, num_servos);
+				PublishServoOutput(servo_data, num_servos);
+			}
 		}
 
 		int32_t full_controller_time = GetTime() - start_time1;

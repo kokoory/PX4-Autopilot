@@ -77,3 +77,25 @@ parameters:
       default: 5
       min: 1
       max: 100
+    MC_NN_NUM_MOT:
+      description:
+        short: Number of motor outputs from the neural network
+        long: Number of motors controlled by the NN. For a quadrotor this is 4,
+          for a singlecopter this is 1. The first MC_NN_NUM_MOT outputs of the NN
+          are published as actuator_motors.
+      type: int32
+      default: 1
+      min: 1
+      max: 12
+      reboot_required: true
+    MC_NN_NUM_SRV:
+      description:
+        short: Number of servo outputs from the neural network
+        long: Number of servos controlled by the NN. For a quadrotor this is 0,
+          for a singlecopter with 4 vanes this is 4. The NN outputs after the
+          motor outputs are published as actuator_servos.
+      type: int32
+      default: 4
+      min: 0
+      max: 8
+      reboot_required: true

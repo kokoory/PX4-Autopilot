@@ -74,6 +74,7 @@
 
 // Publications
 #include <uORB/topics/actuator_motors.h>
+#include <uORB/topics/actuator_servos.h>
 #include <uORB/topics/neural_control.h>
 #include <uORB/topics/distillation_status.h>
 #include <uORB/topics/register_ext_component_request.h>
@@ -111,8 +112,10 @@ private:
 
 	// Functions
 	void PopulateInputTensor();
-	void PublishOutput(float *command_actions);
-	void RescaleActions();
+	void PublishMotorOutput(float motor_command);
+	void PublishServoOutput(float *servo_commands, int num_servos);
+	void RescaleMotorAction(float &motor_output);
+	void RescaleServoActions(float *servo_outputs, int num_servos);
 	int InitializeNetwork();
 	int32_t GetTime();
 	void RegisterNeuralFlightMode();
@@ -137,6 +140,7 @@ private:
 
 	// Publications
 	uORB::Publication<actuator_motors_s> _actuator_motors_pub{ORB_ID(actuator_motors)};
+	uORB::Publication<actuator_servos_s> _actuator_servos_pub{ORB_ID(actuator_servos)};
 	uORB::Publication<neural_control_s> _neural_control_pub{ORB_ID(neural_control)};
 	uORB::Publication<distillation_status_s> _distillation_status_pub{ORB_ID(distillation_status)};
 	uORB::Publication<register_ext_component_request_s> _register_ext_component_request_pub{ORB_ID(register_ext_component_request)};
@@ -174,6 +178,8 @@ private:
 		(ParamBool<px4::params::MC_NN_FALLBACK>) _param_fallback_enabled,
 		(ParamInt<px4::params::MC_NN_MAX_INF_T>) _param_max_inference_time,
 		(ParamInt<px4::params::MC_NN_MODEL_ID>) _param_model_id,
-		(ParamInt<px4::params::MC_NN_ERR_LIM>) _param_error_limit
+		(ParamInt<px4::params::MC_NN_ERR_LIM>) _param_error_limit,
+		(ParamInt<px4::params::MC_NN_NUM_MOT>) _param_num_motors,
+		(ParamInt<px4::params::MC_NN_NUM_SRV>) _param_num_servos
 	)
 };
