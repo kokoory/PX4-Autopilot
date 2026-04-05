@@ -254,6 +254,7 @@
  * The Silkscreen pin labeled SCL is TX
  *                           MISO is RX
  */
+#define GPIO_USART3_RX	GPIO_USART3_RX_1   /* PB11 - RC input */
 #define GPIO_USART3_TX	GPIO_USART3_TX_3   /* PB10 */
 
 /* UART4:
@@ -262,8 +263,11 @@
  *             on the pro version. It's on a 2.54mm header on other versions
  * PA1 (RX) -- Motor 5 out
  */
-#define GPIO_UART4_RX	GPIO_UART4_RX_1
-#define GPIO_UART4_TX	GPIO_UART4_TX_1
+#define GPIO_UART4_RX	GPIO_UART4_RX_1    /* PA1 */
+#define GPIO_UART4_TX	GPIO_UART4_TX_1    /* PA0 */
+
+/* UART5 (ESC telemetry) */
+#define GPIO_UART5_RX	GPIO_UART5_RX_1    /* PD2 */
 
 /* UART6:
  *
