@@ -43,7 +43,6 @@
 
 #pragma once
 
-#include <px4_platform_common/px4_config.h>
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
