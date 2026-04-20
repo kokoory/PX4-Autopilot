@@ -35,7 +35,9 @@ which reasons about sim-to-real gap and generates improved reward functions.
 
 ### Singlecopter Model
 - `ROMFS/.../airframes/4030_gz_singlecopter` — PX4 airframe (CA_AIRFRAME=9, Custom)
-- `Tools/simulation/gz/models/singlecopter/` — Gazebo SDF with lift/drag plugins
+- `Tools/simulation/gz_models_singlecopter/singlecopter/` — Gazebo SDF with lift/drag plugins
+  - NOT inside the `gz` submodule (upstream only). Added to `GZ_SIM_RESOURCE_PATH`
+    via `PX4_GZ_MODELS_EXTRA` in `src/modules/simulation/gz_bridge/gz_env.sh.in`
 
 ## Key Commands
 
@@ -95,3 +97,74 @@ LLM → reward_v2 ← sim_real_bridge ← flight_analyzer ← ULog
        (improved)   (LLM reasons     (anomaly detection,
                      about gap)       phase statistics)
 ```
+
+## Initial Setup (fresh clone)
+```bash
+git clone https://github.com/kokoory/PX4-Autopilot.git
+cd PX4-Autopilot
+git checkout claude/knowledge-distillation-flight-fGsy1
+git submodule update --init --recursive
+bash Tools/setup/ubuntu.sh           # installs build deps + Gazebo
+
+# Distillation pipeline venv (separate from PX4 build env)
+cd Tools/distillation
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt      # core deps only
+# Optional: pip install tensorflow tf2onnx   # for TFLite export
+deactivate
+
+# PX4 build (use system python, NOT venv)
+cd ~/PX4-Autopilot
+make px4_sitl gz_x500                # baseline quad test
+make px4_sitl_neural gz_singlecopter # our singlecopter + neural control
+make holybro_kakutef4aio_default     # Kakute F4 AIO firmware
+```
+
+## Troubleshooting
+
+### Submodule fetch failures
+- `Tools/simulation/gz` submodule fetch error for commit 468d164:
+  Fixed in commit 2f33cd9. Pull latest and re-init submodules.
+- Empty heatshrink/gps-devices dir: `git submodule deinit -f <path>`
+  then `rm -rf <path> && git submodule update --init <path>`
+
+### Python 3.13 + tflite-runtime
+tflite-runtime does not support Python 3.13. Core training works without it.
+Install `tensorflow` (includes tflite) separately if TFLite export is needed.
+
+### Build env vs distillation env
+Don't use the distillation venv for `make px4_sitl_*`. The venv lacks
+kconfiglib/jinja2. Either `deactivate` or use a new terminal.
+
+### Flash overflow on Kakute F4 AIO
+F405 is 1MB flash. TFLite Micro is 274KB. If build exceeds flash, trim
+modules in `default.px4board` (EKF2, GPS, DShot, OSD, TempComp already removed).
+
+### mc_nn_control output wiring
+- `MC_NN_NUM_MOT=1`, `MC_NN_NUM_SRV=4` for singlecopter (default)
+- `MC_NN_NUM_MOT=4`, `MC_NN_NUM_SRV=0` for quadrotor
+- NN output layout: `[motor_0..motor_N, servo_0..servo_M]`
+- Motor outputs → actuator_motors (RPM scaling via MC_NN_MAX_RPM)
+- Servo outputs → actuator_servos (direct [-1, 1] deflection)
+
+## Key files quick reference
+| File | Purpose |
+|------|---------|
+| `src/modules/mc_nn_control/mc_nn_control.cpp:Run()` | Main 400Hz control loop with safety layer |
+| `src/modules/mc_nn_control/distillation_monitor.hpp` | Output validation, PID fallback trigger |
+| `Tools/distillation/feedback_loop.py` | CLI entry for init/feedback/export cycles |
+| `Tools/distillation/sim_real_bridge.py` | LLM sim-to-real gap reasoning (core novelty) |
+| `Tools/distillation/flight_analyzer.py` | ULog parser → anomaly + phase stats → LLM prompt |
+| `msg/DistillationStatus.msg` | uORB telemetry (incl. motor_saturation, flight_phase) |
+| `ROMFS/px4fmu_common/init.d-posix/airframes/4030_gz_singlecopter` | Airframe config w/ vane mixing |
+| `Tools/simulation/gz_models_singlecopter/singlecopter/model.sdf` | Gazebo physics model |
+| `boards/holybro/kakutef4aio/` | F4 AIO board support (LED→motor repurpose) |
+
+## Differentiation from Eureka (NVIDIA 2023)
+Eureka: sim-only, offline, LLM generates reward once → RL → deploy → done.
+Ours: closed-loop, LLM reasons about REAL flight data, iteratively refines
+reward to bridge sim-to-real gap. Flight data includes per-phase stats,
+anomaly detection, motor saturation, output rate of change — structured
+input the LLM can physically interpret (motor lag, prop wash, vibration,
+battery sag).
