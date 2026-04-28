@@ -1,0 +1,40 @@
+module_name: as5047
+parameters:
+- group: Sensors
+  definitions:
+    SENS_EN_AS5047:
+      description:
+        short: AS5047P RPM sensor enable
+        long: Enable the AS5047P magnetic rotary encoder RPM sensor driver.
+      type: enum
+      values:
+        0: Disabled
+        1: Enabled
+      default: 0
+      reboot_required: true
+      min: 0
+      max: 1
+    AS5047_POLL:
+      description:
+        short: AS5047P poll interval
+        long: Determines how often the sensor angle is read. Smaller values give
+          higher update rates but increase bus load.
+      type: int32
+      default: 1000
+      reboot_required: true
+      unit: us
+      min: 100
+      max: 1000000
+    AS5047_POLES:
+      description:
+        short: AS5047P magnetic pole pairs
+        long: |-
+          Number of magnetic pole pairs on the motor.
+          Set to 1 for direct-drive (one magnet per revolution).
+          Set to the motor pole-pair count for BLDC motors (e.g. 7 for a
+          typical 14-pole motor).
+      type: int32
+      default: 1
+      reboot_required: true
+      min: 1
+      max: 50

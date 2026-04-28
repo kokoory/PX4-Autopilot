@@ -1,0 +1,5 @@
+menuconfig DRIVERS_RPM_AS5047
+	bool "as5047"
+	default n
+	---help---
+		Enable support for AS5047P magnetic rotary encoder RPM sensor (SPI)

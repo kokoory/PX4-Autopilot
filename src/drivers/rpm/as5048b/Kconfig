@@ -1,0 +1,5 @@
+menuconfig DRIVERS_RPM_AS5048B
+	bool "as5048b"
+	default n
+	---help---
+		Enable support for AS5048B magnetic rotary encoder RPM sensor

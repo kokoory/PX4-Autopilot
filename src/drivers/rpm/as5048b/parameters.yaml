@@ -1,0 +1,38 @@
+module_name: as5048b
+parameters:
+- group: Sensors
+  definitions:
+    SENS_EN_AS5048B:
+      description:
+        short: AS5048B RPM sensor driver enable
+        long: Enable the AS5048B magnetic rotary encoder RPM sensor driver.
+      type: enum
+      values:
+        0: Disabled
+        1: Enabled
+      default: 0
+      reboot_required: true
+      min: 0
+      max: 1
+    AS5048B_POLL:
+      description:
+        short: AS5048B poll interval
+        long: Determines how often the sensor angle is read for RPM computation.
+      type: int32
+      default: 1000
+      reboot_required: true
+      unit: us
+      min: 100
+      max: 1000000
+    AS5048B_POLES:
+      description:
+        short: AS5048B magnetic pole pairs
+        long: |
+          Number of magnetic pole pairs on the motor.
+          The measured electrical RPM is divided by this value
+          to obtain mechanical RPM.
+      type: int32
+      default: 1
+      reboot_required: true
+      min: 1
+      max: 50
