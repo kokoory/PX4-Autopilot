@@ -1,0 +1,68 @@
+#!/bin/sh
+#
+# @name HIL Standard Plane (Fixed-Wing)
+#
+# @type Simulation
+# @class Plane
+#
+# HITL airframe for standard fixed-wing aircraft.
+# Real PX4 firmware runs on Pixhawk; external simulator (Gazebo Classic
+# or jMAVSim adapted) provides fake sensor data and visualizes flight.
+#
+# Standard plane configuration:
+#   - 1 motor (front pusher/puller)
+#   - 4 control surfaces: aileron L, aileron R, elevator, rudder
+#
+
+. ${R}etc/init.d/rc.fw_defaults
+
+param set SYS_HITL 1
+
+param set UAVCAN_ENABLE 0
+
+# Disable checks to allow flying without real battery/sensors
+param set-default CBRK_SUPPLY_CHK 894281
+
+# Single front motor
+param set-default CA_ROTOR_COUNT 1
+param set-default CA_ROTOR0_PX 0.3
+
+# 4 control surfaces (standard plane)
+param set-default CA_SV_CS_COUNT 4
+
+# Left aileron (roll left)
+param set-default CA_SV_CS0_TYPE 1
+param set-default CA_SV_CS0_TRQ_R -0.5
+
+# Right aileron (roll right)
+param set-default CA_SV_CS1_TYPE 2
+param set-default CA_SV_CS1_TRQ_R 0.5
+
+# Elevator (pitch)
+param set-default CA_SV_CS2_TYPE 3
+param set-default CA_SV_CS2_TRQ_P 1
+
+# Rudder (yaw)
+param set-default CA_SV_CS3_TYPE 4
+param set-default CA_SV_CS3_TRQ_Y 1
+
+# HIL actuator outputs (received from simulator)
+# Output 1: motor throttle
+# Output 2: aileron L
+# Output 3: aileron R
+# Output 4: elevator
+# Output 5: rudder
+param set-default HIL_ACT_FUNC1 101
+param set-default HIL_ACT_FUNC2 201
+param set-default HIL_ACT_FUNC3 202
+param set-default HIL_ACT_FUNC4 203
+param set-default HIL_ACT_FUNC5 204
+
+# Fixed-wing operating envelope
+param set-default FW_AIRSPD_MIN 14
+param set-default FW_AIRSPD_TRIM 18
+param set-default FW_AIRSPD_MAX 25
+param set-default FW_AIRSPD_STALL 12
+
+# Takeoff: launched (catapult / hand-launch). Set 1 for runway takeoff.
+param set-default RWTO_TKOFF 0
