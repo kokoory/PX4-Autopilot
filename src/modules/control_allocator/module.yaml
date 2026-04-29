@@ -594,6 +594,21 @@ parameters:
           min: 0
           max: 10
           default: 0.0
+        CA_SWL_PHASE:
+          description:
+            short: Phase offset for swashplateless blade lag compensation
+            long: |
+              Compensates for the delay between motor speed change and actual
+              blade lift response. Typical values are 30-90 degrees depending
+              on rotor inertia and blade properties.
+              Only used when CA_AIRFRAME is set to Helicopter (Swashplateless).
+          type: float
+          decimal: 1
+          increment: 5
+          unit: deg
+          min: -180
+          max: 180
+          default: 0.0
         CA_MAX_SVO_THROW:
           description:
             short: Throw angle of swashplate servo at maximum commands for linearization
