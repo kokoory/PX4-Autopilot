@@ -106,6 +106,7 @@ if(CONFIG_MODULES_MC_RATE_CONTROL)
 		14001_generic_mc_with_tilt
 
 		16001_helicopter
+		16002_helicopter_swashplateless
 
 		24001_dodeca_cox
 	)

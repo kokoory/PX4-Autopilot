@@ -11,6 +11,8 @@ px4_add_library(VehicleActuatorEffectiveness
 	ActuatorEffectivenessHelicopter.hpp
 	ActuatorEffectivenessHelicopterCoaxial.cpp
 	ActuatorEffectivenessHelicopterCoaxial.hpp
+	ActuatorEffectivenessHelicopterSwashplateless.cpp
+	ActuatorEffectivenessHelicopterSwashplateless.hpp
 	ActuatorEffectivenessMCTilt.cpp
 	ActuatorEffectivenessMCTilt.hpp
 	ActuatorEffectivenessMultirotor.cpp

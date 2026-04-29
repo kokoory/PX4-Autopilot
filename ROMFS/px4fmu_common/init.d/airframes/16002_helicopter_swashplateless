@@ -1,0 +1,44 @@
+#!/bin/sh
+#
+# @name Swashplateless Helicopter
+#
+# @type Helicopter
+# @class Copter
+#
+# Swashplateless helicopter using sinusoidal motor speed modulation
+# synchronized with rotor angle (AS5047 encoder) for cyclic control.
+# No swashplate servos - only main motor + tail motor.
+
+. ${R}etc/init.d/rc.heli_defaults
+
+param set-default CA_AIRFRAME 16
+
+# Main rotor motor
+param set-default CA_ROTOR_COUNT 1
+param set-default CA_ROTOR0_PX 0.0
+param set-default CA_ROTOR0_PY 0.0
+param set-default CA_ROTOR0_KM 0.0
+
+# No swashplate servos
+param set-default CA_SP0_COUNT 0
+
+# Throttle curve (5 points)
+param set-default CA_HELI_THR_C0 0.0
+param set-default CA_HELI_THR_C1 0.3
+param set-default CA_HELI_THR_C2 0.5
+param set-default CA_HELI_THR_C3 0.7
+param set-default CA_HELI_THR_C4 1.0
+
+# Yaw (tail motor)
+param set-default CA_HELI_YAW_CCW 0
+param set-default CA_HELI_YAW_TH_S 0.1
+
+# Phase offset for blade lag compensation (degrees)
+param set-default CA_SWL_PHASE 0.0
+
+# Enable AS5047 encoder
+param set-default SENS_EN_AS5047 1
+
+# Actuator mapping
+param set-default PWM_MAIN_FUNC1 101  # Main motor
+param set-default PWM_MAIN_FUNC2 102  # Tail motor

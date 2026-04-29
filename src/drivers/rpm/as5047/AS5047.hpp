@@ -48,6 +48,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/rpm.h>
+#include <uORB/topics/rotor_position.h>
 #include <drivers/drv_hrt.h>
 
 /* AS5047P register addresses */
@@ -118,6 +119,9 @@ private:
 	int         _error_count{0};
 
 	uORB::PublicationMulti<rpm_s> _rpm_pub{ORB_ID(rpm)};
+	uORB::Publication<rotor_position_s> _rotor_pos_pub{ORB_ID(rotor_position)};
+
+	float       _current_angle_rad{0.0f};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::AS5047_POLL>)  _param_as5047_poll,

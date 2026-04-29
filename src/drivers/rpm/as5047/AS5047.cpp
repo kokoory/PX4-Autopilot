@@ -180,6 +180,15 @@ void AS5047::RunImpl()
 			_error_count = 0;
 		}
 
+		/* Publish invalid rotor position on read error */
+		rotor_position_s rotor_pos{};
+		rotor_pos.timestamp = hrt_absolute_time();
+		rotor_pos.angle_rad = 0.0f;
+		rotor_pos.angle_raw = 0.0f;
+		rotor_pos.rpm = 0.0f;
+		rotor_pos.valid = false;
+		_rotor_pos_pub.publish(rotor_pos);
+
 		return;
 	}
 
@@ -252,6 +261,16 @@ void AS5047::RunImpl()
 	msg.rpm_raw = raw_rpm;
 	msg.timestamp = hrt_absolute_time();
 	_rpm_pub.publish(msg);
+
+	/* Publish rotor position */
+	_current_angle_rad = (static_cast<float>(angle) / 16384.0f) * 2.0f * M_PI_F;
+	rotor_position_s rotor_pos{};
+	rotor_pos.timestamp = hrt_absolute_time();
+	rotor_pos.angle_rad = _current_angle_rad;
+	rotor_pos.angle_raw = static_cast<float>(angle);
+	rotor_pos.rpm = _filtered_rpm;
+	rotor_pos.valid = true;
+	_rotor_pos_pub.publish(rotor_pos);
 
 	_prev_angle = angle;
 	_prev_time = now;

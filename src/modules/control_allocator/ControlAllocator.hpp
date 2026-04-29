@@ -53,6 +53,7 @@
 #include <ActuatorEffectivenessUUV.hpp>
 #include <ActuatorEffectivenessHelicopter.hpp>
 #include <ActuatorEffectivenessHelicopterCoaxial.hpp>
+#include <ActuatorEffectivenessHelicopterSwashplateless.hpp>
 #include <ActuatorEffectivenessSpacecraft.hpp>
 
 #include <ControlAllocation.hpp>
@@ -172,6 +173,7 @@ private:
 		HELICOPTER_COAXIAL = 12,
 		SPACECRAFT_2D = 13,
 		SPACECRAFT_3D = 14,
+		HELICOPTER_SWASHPLATELESS = 16,
 	};
 
 	enum class FailureMode {
